@@ -1,0 +1,6 @@
+{
+  "name": "우리 가족 가계부 (Family Ledger)",
+  "description": "실시간 데이터 동기화와 직관적인 지출/수입 관리가 가능한 가족 공유 반응형 가계부",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

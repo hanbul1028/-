@@ -1,0 +1,178 @@
+{
+  "entities": {
+    "ledgerEntry": {
+      "title": "Ledger Entry",
+      "description": "A single expense or income transaction in the family shared ledger",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "Date of transaction (YYYY-MM-DD)",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount in KRW (positive number)"
+        },
+        "category": {
+          "type": "string",
+          "description": "Transaction category",
+          "maxLength": 50
+        },
+        "memo": {
+          "type": "string",
+          "description": "Description or note",
+          "maxLength": 200
+        },
+        "type": {
+          "type": "string",
+          "description": "Transaction type: expense or income",
+          "enum": ["expense", "income"]
+        },
+        "userName": {
+          "type": "string",
+          "description": "Display name of author",
+          "maxLength": 100
+        },
+        "userPhoto": {
+          "type": "string",
+          "description": "Photo URL of author",
+          "maxLength": 500
+        },
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of creator",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when transaction was recorded"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method such as cash or specific card",
+          "maxLength": 50
+        },
+        "installmentId": {
+          "type": "string",
+          "description": "Unique ID linking split installment entries",
+          "maxLength": 128
+        },
+        "installmentCurrent": {
+          "type": "number",
+          "description": "Current installment month index (e.g. 1)"
+        },
+        "installmentTotal": {
+          "type": "number",
+          "description": "Total installment months (e.g. 3)"
+        },
+        "usedPoints": {
+          "type": "number",
+          "description": "Amount of loyalty points (e.g. Tamna points) used in KRW"
+        }
+      },
+      "required": ["date", "amount", "category", "memo", "type", "userName", "uid", "createdAt"]
+    },
+    "fixedExpense": {
+      "title": "Fixed Expense",
+      "description": "Recurring monthly fixed expense setting",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of fixed expense (e.g. 넷플릭스, 관리비)",
+          "maxLength": 100
+        },
+        "amount": {
+          "type": "number",
+          "description": "Fixed amount in KRW"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category for the expense",
+          "maxLength": 50
+        },
+        "paymentDay": {
+          "type": "number",
+          "description": "Day of the month for payment (1-31)"
+        },
+        "memo": {
+          "type": "string",
+          "description": "Additional note",
+          "maxLength": 200
+        },
+        "userName": {
+          "type": "string",
+          "description": "Name of author",
+          "maxLength": 100
+        },
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of creator",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when created"
+        }
+      },
+      "required": ["name", "amount", "category", "paymentDay", "userName", "uid", "createdAt"]
+    },
+    "cardSetting": {
+      "title": "Card Setting",
+      "description": "Monthly spending target amounts for cards",
+      "type": "object",
+      "properties": {
+        "targets": {
+          "type": "object",
+          "description": "Map of card name to target amount"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Name of user who updated"
+        }
+      }
+    },
+    "walletBalance": {
+      "title": "Wallet Balance",
+      "description": "Stored balance or point credits for wallets like Tamna Jeon",
+      "type": "object",
+      "properties": {
+        "balance": {
+          "type": "number",
+          "description": "Current points or cash balance"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Name of user who updated"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/ledger/{entryId}": {
+      "schema": "ledgerEntry",
+      "description": "Collection of all shared family ledger transactions"
+    },
+    "/fixed_expenses/{fixedExpenseId}": {
+      "schema": "fixedExpense",
+      "description": "Collection of recurring monthly fixed expense templates"
+    },
+    "/card_settings/{settingId}": {
+      "schema": "cardSetting",
+      "description": "Card performance target amount settings"
+    },
+    "/wallet_balances/{walletId}": {
+      "schema": "walletBalance",
+      "description": "Point and balance records for local currency wallets"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidLedgerEntry(data) {
+      return data.date is string
+        && data.date.size() == 10
+        && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.amount is number
+        && data.amount > 0
+        && data.amount <= 100000000000
+        && data.category is string
+        && data.category.size() > 0
+        && data.category.size() <= 50
+        && data.memo is string
+        && data.memo.size() <= 200
+        && (data.type == 'expense' || data.type == 'income')
+        && data.userName is string
+        && data.userName.size() > 0
+        && data.userName.size() <= 100
+        && (!('userPhoto' in data) || (data.userPhoto is string && data.userPhoto.size() <= 500))
+        && data.uid is string
+        && data.uid.size() > 0
+        && data.uid.size() <= 128
+        && data.createdAt is string
+        && data.createdAt.size() > 0
+        && data.createdAt.size() <= 60
+        && (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 50))
+        && (!('installmentId' in data) || (data.installmentId is string && data.installmentId.size() <= 128))
+        && (!('installmentCurrent' in data) || (data.installmentCurrent is number && data.installmentCurrent >= 1 && data.installmentCurrent <= 60))
+        && (!('installmentTotal' in data) || (data.installmentTotal is number && data.installmentTotal >= 2 && data.installmentTotal <= 60))
+        && (!('usedPoints' in data) || (data.usedPoints is number && data.usedPoints >= 0 && data.usedPoints <= 100000000));
+    }
+
+    function isValidFixedExpense(data) {
+      return data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 100
+        && data.amount is number
+        && data.amount > 0
+        && data.amount <= 100000000000
+        && data.category is string
+        && data.category.size() > 0
+        && data.category.size() <= 50
+        && data.paymentDay is number
+        && data.paymentDay >= 1
+        && data.paymentDay <= 31
+        && (!('memo' in data) || (data.memo is string && data.memo.size() <= 200))
+        && data.userName is string
+        && data.userName.size() > 0
+        && data.userName.size() <= 100
+        && data.uid is string
+        && data.uid.size() > 0
+        && data.uid.size() <= 128
+        && data.createdAt is string
+        && data.createdAt.size() > 0
+        && data.createdAt.size() <= 60;
+    }
+
+    // Ledger collection for family shared finances
+    match /ledger/{entryId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isValidId(entryId)
+        && incoming().uid == request.auth.uid
+        && incoming().keys().hasAll(['date', 'amount', 'category', 'memo', 'type', 'userName', 'uid', 'createdAt'])
+        && incoming().keys().hasOnly(['date', 'amount', 'category', 'memo', 'type', 'userName', 'userPhoto', 'uid', 'createdAt', 'paymentMethod', 'installmentId', 'installmentCurrent', 'installmentTotal', 'usedPoints'])
+        && isValidLedgerEntry(incoming());
+
+      allow update: if isSignedIn()
+        && isValidId(entryId)
+        && isValidLedgerEntry(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'amount', 'category', 'memo', 'type', 'userName', 'userPhoto', 'paymentMethod', 'installmentId', 'installmentCurrent', 'installmentTotal', 'usedPoints', 'updatedAt']);
+
+      allow delete: if isSignedIn()
+        && isValidId(entryId);
+    }
+
+    // Fixed expenses collection for recurring monthly items
+    match /fixed_expenses/{fixedExpenseId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isValidId(fixedExpenseId)
+        && incoming().uid == request.auth.uid
+        && incoming().keys().hasAll(['name', 'amount', 'category', 'paymentDay', 'userName', 'uid', 'createdAt'])
+        && incoming().keys().hasOnly(['name', 'amount', 'category', 'paymentDay', 'memo', 'userName', 'uid', 'createdAt'])
+        && isValidFixedExpense(incoming());
+
+      allow update: if isSignedIn()
+        && isValidId(fixedExpenseId)
+        && isValidFixedExpense(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'amount', 'category', 'paymentDay', 'memo', 'userName', 'updatedAt']);
+
+      allow delete: if isSignedIn()
+        && isValidId(fixedExpenseId);
+    }
+
+    // Card targets settings
+    match /card_settings/{settingId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && isValidId(settingId);
+    }
+
+    // Wallet balances (e.g. Tamna Jeon points)
+    match /wallet_balances/{walletId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && isValidId(walletId);
+    }
+
+    // Connectivity test probe
+    match /test/{testId} {
+      allow get: if isSignedIn() && isValidId(testId);
+    }
+  }
+}
